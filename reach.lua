@@ -1,6 +1,13 @@
 local M = {}
 
 M.reach = function(from, to)
+  local reverse = function(t)
+    for i = 1, math.floor(#t / 2), 1 do
+      t[i], t[#t - i + 1] = t[#t - i + 1], t[i]
+    end
+    return t
+  end
+
   local X = {
     { val = from, prev = nil, key = nil },
     -- [_G] = true,
@@ -13,8 +20,7 @@ M.reach = function(from, to)
         stk[#stk + 1] = node.key .. " (" .. tostring(node.val) .. ")"
         node = node.prev
         if not node or not node.key then
-          table.sort(stk, function(a, b) return a > b end)
-          return table.concat(stk, "\n")
+          return table.concat(reverse(stk), "\n")
         end
       end
     end
