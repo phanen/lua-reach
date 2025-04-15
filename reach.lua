@@ -7,69 +7,64 @@ M.reach = function(from, to)
     end
     return t
   end
-
   local X = {
     { val = from, prev = nil, by = "." },
     -- [_G] = true,
   }
   for _, node in ipairs(X) do
-    local val = node.val ---@type function|table
+    local val = node.val ---@type any
+    local ty = type(val)
+    if ty ~= "function" and ty ~= 'table' then
+      local mt = getmetatable(val)
+      if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
+      goto continue
+    end
     if val == to then
       local stk = {}
       while true do
         stk[#stk + 1] = ("%-20s = (%s)"):format(node.by, tostring(node.val))
         node = node.prev
-        if not node then
-          return table.concat(reverse(stk), "\n")
-        end
+        if not node then return table.concat(reverse(stk), "\n") end
       end
     end
     if X[val] then
       goto continue
     end
+    ---@diagnostic disable-next-line: assign-type-mismatch
     X[val] = true
-    if type(val) == "function" then
+    local mt = getmetatable(val)
+    if ty == "function" then
       local i = 1
       while true do
         local k, v = debug.getupvalue(val, i)
         if not k then break end
-        if type(v) == "table" or type(v) == "function" then
+        if v then
           X[#X + 1] = { val = v, prev = node, by = ("u[%s]"):format(tostring(k)) }
         end
         i = i + 1
       end
+      if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
     end
-    if type(val) ~= "table" then
-      goto continue
-    end
-    local mt = getmetatable(val)
     if not mt or type(mt.__mode) ~= "string" or not mt.__mode:find("[kv]") then
       for k, v in pairs(val) do
-        if type(v) == "table" or type(v) == "function" then
-          X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
-        end
-        if type(k) == "table" or type(k) == "function" then
-          X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
-        end
+        X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
+        X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
       end
+      if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
     end
     if not mt.__mode:find("v") then
       for k, v in pairs(val) do
-        if type(v) == "table" or type(v) == "function" then
-          X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
-        end
+        X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
       end
     end
     if not mt.__mode:find("k") then
-      for k, _ in pairs(val) do
-        if type(k) == "table" or type(k) == "function" then
-          X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
-        end
+      for k in pairs(val) do
+        X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
       end
     end
-    X[#X + 1] = { val = mt, prev = node, key = "mt" }
+    X[#X + 1] = { val = mt, prev = node, by = "mt" }
     ::continue::
   end
   return false
