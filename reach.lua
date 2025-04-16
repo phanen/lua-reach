@@ -14,7 +14,7 @@ M.reach = function(from, to)
   for _, node in ipairs(X) do
     local val = node.val ---@type any
     local ty = type(val)
-    if ty ~= "function" and ty ~= 'table' then
+    if ty ~= "function" and ty ~= 'thread' and ty ~= 'table' then
       local mt = getmetatable(val)
       if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
@@ -42,6 +42,14 @@ M.reach = function(from, to)
           X[#X + 1] = { val = v, prev = node, by = ("u[%s]"):format(tostring(k)) }
         end
         i = i + 1
+      end
+      if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
+      goto continue
+    end
+    if ty == 'thread' then
+      local info = debug.getinfo(val, 1)
+      if info and info.func then
+        X[#X + 1] = { val = info.func, prev = node, by = ("t[%s]"):format(tostring(val)) }
       end
       if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
