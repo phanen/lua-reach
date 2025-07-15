@@ -39,7 +39,7 @@ M.reach = function(from, to)
         local k, v = debug.getupvalue(val, i)
         if not k then break end
         if v then
-          X[#X + 1] = { val = v, prev = node, by = ("u[%s]"):format(tostring(k)) }
+          X[#X + 1] = { val = v, prev = node, by = ("u(%s)"):format(tostring(k)) }
         end
         i = i + 1
       end
@@ -47,29 +47,30 @@ M.reach = function(from, to)
       goto continue
     end
     if ty == 'thread' then
+      -- https://stackoverflow.com/questions/28826225/getting-function-used-to-create-coroutine-thread-in-lua
       local info = debug.getinfo(val, 1)
       if info and info.func then
-        X[#X + 1] = { val = info.func, prev = node, by = ("t[%s]"):format(tostring(val)) }
+        X[#X + 1] = { val = info.func, prev = node, by = ("t(%s)"):format(tostring(val)) }
       end
       if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
     end
     if not mt or type(mt.__mode) ~= "string" or not mt.__mode:find("[kv]") then
       for k, v in pairs(val) do
-        X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
-        X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
+        X[#X + 1] = { val = v, prev = node, by = (".(%s)"):format(tostring(k)) }
+        X[#X + 1] = { val = k, prev = node, by = ("k(%s)"):format(tostring(k)) }
       end
       if mt then X[#X + 1] = { val = mt, prev = node, by = "mt" } end
       goto continue
     end
     if not mt.__mode:find("v") then
       for k, v in pairs(val) do
-        X[#X + 1] = { val = v, prev = node, by = (".[%s]"):format(tostring(k)) }
+        X[#X + 1] = { val = v, prev = node, by = (".(%s)"):format(tostring(k)) }
       end
     end
     if not mt.__mode:find("k") then
       for k in pairs(val) do
-        X[#X + 1] = { val = k, prev = node, by = ("k[%s]"):format(tostring(k)) }
+        X[#X + 1] = { val = k, prev = node, by = ("k(%s)"):format(tostring(k)) }
       end
     end
     X[#X + 1] = { val = mt, prev = node, by = "mt" }
